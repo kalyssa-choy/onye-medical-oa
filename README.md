@@ -1,3 +1,100 @@
+# OnyeOA - Clinical Data Reconciliation Engine
+
+Take-home assessment implementation for **Full Stack Developer - EHR Integration Intern**.
+
+This project includes:
+- `POST /api/reconcile/medication` for medication reconciliation
+- `POST /api/validate/data-quality` for data quality scoring
+- A React dashboard with separate Reconciliation and Validation workflows
+
+## Tech Stack
+
+- **Frontend:** React + TypeScript + Vite
+- **Backend:** Node.js + Express
+- **LLM SDK/API:** OpenAI Responses API (`gpt-4.1-mini`)
+
+## How To Run Locally
+
+### Prerequisites
+- Node.js 18+
+- npm
+
+### 1) Install dependencies
+
+```bash
+cd backend
+npm install
+
+cd ../frontend
+npm install
+```
+
+### 2) Configure environment
+
+Create `backend/.env`:
+
+```env
+PORT=3001
+USE_MOCK_OPENAI=true
+OPENAI_API_KEY=your_openai_key_if_using_real_ai
+```
+
+Notes:
+- `USE_MOCK_OPENAI=true`: runs deterministic fallback logic for main OA endpoints (no paid API needed).
+- `USE_MOCK_OPENAI=false` + valid `OPENAI_API_KEY`: uses real OpenAI API responses.
+
+### 3) Start backend
+
+```bash
+cd backend
+npm run dev
+```
+
+### 4) Start frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Frontend proxies `/api` requests to `http://localhost:3001`.
+
+## Which LLM API I Used and Why
+
+- **Used:** OpenAI Responses API (`gpt-4.1-mini`) via official OpenAI Node SDK.
+- **Why:**
+  - Reliable structured output when prompted with strict JSON constraints
+  - Fast response time for interactive UI workflows
+  - Straightforward SDK integration and error handling
+
+## Prompt Engineering Approach
+
+I used prompt engineering to **utilize development time more efficiently** while improving output consistency:
+- Added strict JSON-only output instructions
+- Included explicit schema and scoring constraints
+- Passed clinical context (conditions, labs, source recency/reliability) directly in prompts
+- Added response parsing and format validation as a safety layer
+
+## Key Design Decisions and Trade-offs
+
+- **Decision:** Keep backend simple and stateless (no DB) for faster OA delivery.
+  - **Trade-off:** No persistence/history.
+- **Decision:** Add `USE_MOCK_OPENAI` mode for cost-free demos.
+  - **Trade-off:** Mock scoring is deterministic pseudo-analysis, not full model reasoning.
+- **Decision:** Prioritize a clean, clinician-friendly UI (clear cards, status colors, confidence display).
+  - **Trade-off:** Limited deeper design system abstraction.
+
+## What I Would Improve With More Time
+
+- Add at least 5 automated unit/integration tests
+- Add caching for repeated API requests
+- Add authentication and lightweight audit/history trail
+- Improve confidence calibration and clinical rule checks
+- Add CI + deployment pipeline
+
+## Estimated Time Spent
+
+Approximately **16 hours**.
 # OnyeOA - Clinical Data Reconciliation Engine (Mini Version)
 
 Full-stack take-home project for the **Full Stack Developer - EHR Integration Intern** assessment.
@@ -115,7 +212,7 @@ Notes:
 
 ```bash
 cd backend
-npm run dev
+npm start
 ```
 
 ### 4) Run frontend
