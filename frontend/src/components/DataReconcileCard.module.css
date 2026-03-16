@@ -46,7 +46,9 @@
   color: #12313b;
   background: #fbfeff;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .contextInputs input:focus,
@@ -106,7 +108,10 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .removeSourceButton:hover,
@@ -165,7 +170,9 @@
   border: 1px solid rgba(29, 124, 160, 0.22);
   background: #f4fbfd;
   padding: 18px;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .reconcileResultApproved {

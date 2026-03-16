@@ -55,7 +55,9 @@
   color: #12313b;
   background: #fbfeff;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .field input:focus {
@@ -79,7 +81,9 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .validateButton:hover {

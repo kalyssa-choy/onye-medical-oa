@@ -3,6 +3,9 @@ import styles from "./DataReconcileCard.module.css";
 
 type Reliability = "low" | "medium" | "high";
 const LAB_ENTRY_PATTERN = /^([^:]+):\s*(-?\d+(\.\d+)?)$/;
+const APP_API_KEY = import.meta.env.VITE_APP_API_KEY || "onye-dev-key";
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Something went wrong.";
 
 interface SourceRecord {
   system: string;
@@ -39,15 +42,9 @@ export const DataReconcileCard: React.FC = () => {
     },
   ]);
 
-  const updateSource = (
-    index: number,
-    field: keyof SourceRecord,
-    value: string,
-  ) => {
+  const updateSource = (index: number, field: keyof SourceRecord, value: string) => {
     setSources((prev) =>
-      prev.map((source, i) =>
-        i === index ? { ...source, [field]: value } : source,
-      ),
+      prev.map((source, i) => (i === index ? { ...source, [field]: value } : source)),
     );
   };
 
@@ -188,6 +185,7 @@ export const DataReconcileCard: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-api-key": APP_API_KEY,
         },
         body: JSON.stringify(payload),
       });
@@ -199,8 +197,8 @@ export const DataReconcileCard: React.FC = () => {
       }
 
       setResult(data);
-    } catch (error: any) {
-      setErrorMessage(error.message || "Something went wrong.");
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -238,9 +236,6 @@ export const DataReconcileCard: React.FC = () => {
             onChange={(e) => setLabs(e.target.value)}
           />
         </div>
-
-       
-
       </div>
 
       <h3>Medication Records to Reconcile</h3>
@@ -284,11 +279,7 @@ export const DataReconcileCard: React.FC = () => {
               <select
                 value={source.source_reliability}
                 onChange={(e) =>
-                  updateSource(
-                    index,
-                    "source_reliability",
-                    e.target.value as Reliability,
-                  )
+                  updateSource(index, "source_reliability", e.target.value as Reliability)
                 }
               >
                 <option value="low">Low</option>
@@ -297,8 +288,6 @@ export const DataReconcileCard: React.FC = () => {
               </select>
             </div>
           </div>
-
-          
 
           {sources.length > 1 && (
             <button
@@ -312,11 +301,7 @@ export const DataReconcileCard: React.FC = () => {
         </div>
       ))}
 
-      <button
-        type="button"
-        className={styles.addSourceButton}
-        onClick={addSource}
-      >
+      <button type="button" className={styles.addSourceButton} onClick={addSource}>
         Add Another Medication Record
       </button>
 
@@ -347,8 +332,7 @@ export const DataReconcileCard: React.FC = () => {
           <div className={styles.resultRow}>
             <strong>Confidence Score:</strong>
             <p className={getConfidenceClass(result.confidence_score)}>
-              {result.confidence_score.toFixed(2)} —{" "}
-              {getConfidenceLabel(result.confidence_score)}
+              {result.confidence_score.toFixed(2)} — {getConfidenceLabel(result.confidence_score)}
             </p>
           </div>
 

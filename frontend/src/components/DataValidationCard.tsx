@@ -21,9 +21,13 @@ interface ValidationResult {
 interface ValidationApiResponse {
   ai_response: ValidationResult;
   raw_output: string;
+  error?: string;
 }
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const APP_API_KEY = import.meta.env.VITE_APP_API_KEY || "onye-dev-key";
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Something went wrong.";
 
 const toStringList = (value: string) =>
   value
@@ -144,18 +148,19 @@ export const DataValidationCard: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-api-key": APP_API_KEY,
         },
         body: JSON.stringify(payload),
       });
 
       const data: ValidationApiResponse = await response.json();
       if (!response.ok) {
-        throw new Error((data as any)?.error || "Data validation failed.");
+        throw new Error(data.error || "Data validation failed.");
       }
 
       setResult(data.ai_response);
-    } catch (error: any) {
-      setErrorMessage(error.message || "Something went wrong.");
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -300,7 +305,9 @@ export const DataValidationCard: React.FC = () => {
                   <li key={`${issue.field}-${index}`} className={styles.issueItem}>
                     <div className={styles.issueTopRow}>
                       <strong>{issue.field}</strong>
-                      <span className={`${styles.severityBadge} ${getSeverityClass(issue.severity)}`}>
+                      <span
+                        className={`${styles.severityBadge} ${getSeverityClass(issue.severity)}`}
+                      >
                         {issue.severity}
                       </span>
                     </div>
