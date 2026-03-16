@@ -1,25 +1,22 @@
 import express from "express";
 import OpenAI from "openai";
+import { buildCacheKey, createCacheStore } from "../utils/cacheStore.js";
+import { isValidDate, selectBestSource } from "../utils/reconcileUtils.js";
 
 const router = express.Router();
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-/*
-Validate strict YYYY-MM-DD format
-*/
-const isValidDate = (value) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-
-  const date = new Date(value);
-  return !isNaN(date.getTime());
-};
+const CACHE_TTL_MS = 5 * 60 * 1000;
+// Lightweight in-memory cache to reduce repeated LLM calls for identical payloads.
+const responseCache = createCacheStore(CACHE_TTL_MS);
 
 router.post("/reconcile/medication", async (req, res) => {
   try {
     const { patient_context, sources } = req.body;
+    const useMockMode =
+      process.env.USE_MOCK_OPENAI === "true" || !process.env.OPENAI_API_KEY;
 
     /*
     Validate patient_context
@@ -98,24 +95,19 @@ router.post("/reconcile/medication", async (req, res) => {
       }
     }
 
+    const cacheKey = buildCacheKey("reconcile", useMockMode, req.body);
+    const cached = responseCache.get(cacheKey);
+    if (cached) {
+      // Return cached response to minimize latency and API usage.
+      return res.json(cached);
+    }
+
     /*
     If we're in mock mode (e.g., for an OA without paid API access),
     return a deterministic reconciled result without calling OpenAI.
     */
-    if (process.env.USE_MOCK_OPENAI === "true" || !process.env.OPENAI_API_KEY) {
-      const sortedSources = [...sources].sort((a, b) => {
-        const reliabilityOrder = { low: 0, medium: 1, high: 2 };
-        const relA = reliabilityOrder[a.source_reliability] ?? 0;
-        const relB = reliabilityOrder[b.source_reliability] ?? 0;
-
-        if (relA !== relB) return relB - relA;
-
-        const dateA = new Date(a.last_updated).getTime();
-        const dateB = new Date(b.last_updated).getTime();
-        return dateB - dateA;
-      });
-
-      const best = sortedSources[0];
+    if (useMockMode) {
+      const best = selectBestSource(sources);
 
       const mockResult = {
         reconciled_medication: best.medication,
@@ -129,6 +121,7 @@ router.post("/reconcile/medication", async (req, res) => {
         clinical_safety_check: "PASSED",
       };
 
+      responseCache.set(cacheKey, mockResult);
       return res.json(mockResult);
     }
 
@@ -203,9 +196,17 @@ Rules:
     /*
     Return result
     */
+    responseCache.set(cacheKey, parsedResult);
     return res.json(parsedResult);
   } catch (error) {
     console.error("Reconciliation error:", error);
+
+    if (error?.status === 429) {
+      return res.status(429).json({
+        error: "LLM rate limit exceeded. Please retry shortly.",
+        details: error?.message || String(error),
+      });
+    }
 
     return res.status(500).json({
       error: "Medication reconciliation failed",

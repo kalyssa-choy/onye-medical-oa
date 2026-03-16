@@ -1,127 +1,83 @@
 import express from "express";
 import OpenAI from "openai";
+import { buildCacheKey, createCacheStore } from "../utils/cacheStore.js";
+import {
+  buildEmptyValidationResult,
+  buildMockValidationResult,
+  hasAnyValidationInput,
+} from "../utils/validateUtils.js";
 
 const router = express.Router();
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
+const CACHE_TTL_MS = 5 * 60 * 1000;
+// Lightweight in-memory cache to reduce repeated LLM calls for identical payloads.
+const responseCache = createCacheStore(CACHE_TTL_MS);
 
 router.post("/validate/data-quality", async (req, res) => {
   try {
-    const { 
-        demographics, 
-        medications, 
-        allergies, 
-        conditions, 
-        vital_signs, 
-        last_updated 
+    const {
+      demographics,
+      medications,
+      allergies,
+      conditions,
+      vital_signs,
+      last_updated,
     } = req.body;
+
+    const useMockMode =
+      process.env.USE_MOCK_OPENAI === "true" || !process.env.OPENAI_API_KEY;
+    const cacheKey = buildCacheKey("validate", useMockMode, req.body);
+    const cached = responseCache.get(cacheKey);
+    if (cached) {
+      // Return cached response to minimize latency and API usage.
+      return res.json(cached);
+    }
 
     /*
     If we're in mock mode (without paid API access),
     return a deterministic data quality assessment without calling OpenAI.
     */
-    if (process.env.USE_MOCK_OPENAI === "true" || !process.env.OPENAI_API_KEY) {
-      const sections = {
+    if (useMockMode) {
+      const hasAnyInput = hasAnyValidationInput({
         demographics,
         medications,
         allergies,
         conditions,
         vital_signs,
-      };
-
-      const hasAnyInput =
-        (demographics && Object.keys(demographics).length > 0) ||
-        (Array.isArray(medications) && medications.length > 0) ||
-        (Array.isArray(allergies) && allergies.length > 0) ||
-        (Array.isArray(conditions) && conditions.length > 0) ||
-        (vital_signs && Object.keys(vital_signs).length > 0) ||
-        Boolean(last_updated);
+        last_updated,
+      });
 
       if (!hasAnyInput) {
-        const emptyResult = {
-          overall_score: 0,
-          breakdown: {
-            completeness: 0,
-            accuracy: 0,
-            timeliness: 0,
-            clinical_plausibility: 0,
-          },
-          issues_detected: [],
-        };
+        const emptyResult = buildEmptyValidationResult();
 
-        return res.json({
+        const emptyResponse = {
           ai_response: emptyResult,
           raw_output: JSON.stringify(emptyResult),
-        });
+        };
+
+        responseCache.set(cacheKey, emptyResponse);
+        return res.json(emptyResponse);
       }
 
-      let filledSections = 0;
-      const totalSections = Object.keys(sections).length;
-
-      Object.values(sections).forEach((section) => {
-        const hasContent =
-          section &&
-          ((Array.isArray(section) && section.length > 0) ||
-            (!Array.isArray(section) &&
-              typeof section === "object" &&
-              Object.keys(section).length > 0));
-        if (hasContent) {
-          filledSections += 1;
-        }
+      const mockResult = buildMockValidationResult({
+        demographics,
+        medications,
+        allergies,
+        conditions,
+        vital_signs,
+        last_updated,
       });
 
-      const completeness = Math.round((filledSections / totalSections) * 100);
-
-      // Very rough timeliness heuristic
-      let timeliness = 70;
-      if (!last_updated) {
-        timeliness = 40;
-      }
-
-      // Simple plausibility check for blood pressure if present
-      let clinicalPlausibility = 80;
-      const issues_detected = [];
-
-      if (
-        vital_signs &&
-        typeof vital_signs.blood_pressure === "string" &&
-        vital_signs.blood_pressure.includes("/")
-      ) {
-        const [s, d] = vital_signs.blood_pressure.split("/").map((x) => Number(x));
-        if (!Number.isNaN(s) && !Number.isNaN(d) && (s > 260 || d > 160)) {
-          clinicalPlausibility = 40;
-          issues_detected.push({
-            field: "vital_signs.blood_pressure",
-            issue: "Blood pressure value is physiologically implausible",
-            severity: "high",
-          });
-        }
-      }
-
-      // Accuracy is loosely tied to plausibility here
-      const accuracy = Math.round((clinicalPlausibility + completeness) / 2);
-
-      const overall_score = Math.round(
-        (completeness + accuracy + timeliness + clinicalPlausibility) / 4
-      );
-
-      const mockResult = {
-        overall_score,
-        breakdown: {
-          completeness,
-          accuracy,
-          timeliness,
-          clinical_plausibility: clinicalPlausibility,
-        },
-        issues_detected,
-      };
-
-      return res.json({
+      const mockResponse = {
         ai_response: mockResult,
         raw_output: JSON.stringify(mockResult),
-      });
+      };
+
+      responseCache.set(cacheKey, mockResponse);
+      return res.json(mockResponse);
     }
 
     const prompt = `
@@ -170,7 +126,7 @@ Rules:
 
     const response = await client.responses.create({
       model: "gpt-4.1-mini",
-      input: prompt
+      input: prompt,
     });
 
     const output = response.output_text;
@@ -181,18 +137,28 @@ Rules:
     } catch (parseError) {
       return res.status(500).json({
         error: "Model did not return valid JSON",
-        raw_output: output
+        raw_output: output,
       });
     }
 
-    res.json({
+    const modelResponse = {
       ai_response: parsedResult,
-      raw_output: output
-    });
+      raw_output: output,
+    };
+    responseCache.set(cacheKey, modelResponse);
+    res.json(modelResponse);
   } catch (error) {
     console.error("Validation error:", error);
+
+    if (error?.status === 429) {
+      return res.status(429).json({
+        error: "LLM rate limit exceeded. Please retry shortly.",
+        details: error?.message || String(error),
+      });
+    }
+
     res.status(500).json({
-      error: "Data quality validation failed"
+      error: "Data quality validation failed",
     });
   }
 });
