@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styles from "./DataReconcileCard.module.css";
 
 type Reliability = "low" | "medium" | "high";
+const LAB_ENTRY_PATTERN = /^([^:]+):\s*(-?\d+(\.\d+)?)$/;
 
 interface SourceRecord {
   system: string;
@@ -18,6 +19,8 @@ interface ReconcileResponse {
   clinical_safety_check: "PASSED" | "DENIED";
 }
 
+type ReviewStatus = "none" | "approved" | "rejected";
+
 export const DataReconcileCard: React.FC = () => {
   const [age, setAge] = useState("");
   const [conditions, setConditions] = useState("");
@@ -25,6 +28,7 @@ export const DataReconcileCard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<ReconcileResponse | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("none");
 
   const [sources, setSources] = useState<SourceRecord[]>([
     {
@@ -71,7 +75,7 @@ export const DataReconcileCard: React.FC = () => {
       .map((item) => item.trim())
       .filter(Boolean)
       .reduce((acc: Record<string, number>, item) => {
-        const match = item.match(/^([^:]+):\s*(-?\d+(\.\d+)?)$/);
+        const match = item.match(LAB_ENTRY_PATTERN);
         if (!match) return acc;
 
         const key = match[1].trim();
@@ -98,15 +102,14 @@ export const DataReconcileCard: React.FC = () => {
 
     if (!labs.trim()) {
       return "Recent labs are required.";
-    }
-    else{
+    } else {
       const pieces = labs
         .split(",")
         .map((piece) => piece.trim())
         .filter(Boolean);
 
       for (const piece of pieces) {
-        const match = piece.match(/^([^:]+):\s*(-?\d+(\.\d+)?)$/);
+        const match = piece.match(LAB_ENTRY_PATTERN);
         if (!match) {
           return "Recent labs must be entered as key:number pairs separated by commas.";
         }
@@ -145,14 +148,15 @@ export const DataReconcileCard: React.FC = () => {
   };
 
   const getConfidenceClass = (score: number) => {
-    if (score >= 0.8) return "confidence-high";
-    if (score >= 0.5) return "confidence-medium";
-    return "confidence-low";
+    if (score >= 0.8) return styles.confidenceHigh;
+    if (score >= 0.5) return styles.confidenceMedium;
+    return styles.confidenceLow;
   };
 
   const handleReconcileClick = async () => {
     setErrorMessage("");
     setResult(null);
+    setReviewStatus("none");
 
     const validationError = checkInputData();
     if (validationError) {
@@ -242,7 +246,7 @@ export const DataReconcileCard: React.FC = () => {
       <h3>Medication Records to Reconcile</h3>
 
       {sources.map((source, index) => (
-        <div key={index} className="source-card">
+        <div key={index} className={styles.sourceCard}>
           <div className={styles.sourceInputsFirstRow}>
             <div className={styles.sourceInputsFirstRowItem}>
               <label>System*</label>
@@ -327,18 +331,20 @@ export const DataReconcileCard: React.FC = () => {
         </button>
       </div>
 
-      {errorMessage && <p className="error-message">{errorMessage}</p>}
+      {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
 
       {result && (
-        <div className="reconcile-result-card">
+        <div
+          className={`${styles.reconcileResultCard} ${reviewStatus === "approved" ? styles.reconcileResultApproved : ""} ${reviewStatus === "rejected" ? styles.reconcileResultRejected : ""}`}
+        >
           <h3>Reconciled Result</h3>
 
-          <div className="result-row">
+          <div className={styles.resultRow}>
             <strong>Reconciled Medication:</strong>
             <p>{result.reconciled_medication}</p>
           </div>
 
-          <div className="result-row">
+          <div className={styles.resultRow}>
             <strong>Confidence Score:</strong>
             <p className={getConfidenceClass(result.confidence_score)}>
               {result.confidence_score.toFixed(2)} —{" "}
@@ -346,12 +352,12 @@ export const DataReconcileCard: React.FC = () => {
             </p>
           </div>
 
-          <div className="result-row">
+          <div className={styles.resultRow}>
             <strong>Reasoning:</strong>
             <p>{result.reasoning}</p>
           </div>
 
-          <div className="result-row">
+          <div className={styles.resultRow}>
             <strong>Recommended Actions:</strong>
             <ul>
               {result.recommended_actions.map((action, index) => (
@@ -360,19 +366,33 @@ export const DataReconcileCard: React.FC = () => {
             </ul>
           </div>
 
-          <div className="result-row">
+          <div className={styles.resultRow}>
             <strong>Clinical Safety Check:</strong>
             <p>{result.clinical_safety_check}</p>
           </div>
 
-          <div className="result-actions">
-            <button type="button" className="approve-button">
+          <div className={styles.resultActions}>
+            <button
+              type="button"
+              className={styles.approveButton}
+              onClick={() => setReviewStatus("approved")}
+            >
               Approve
             </button>
-            <button type="button" className="reject-button">
+            <button
+              type="button"
+              className={styles.rejectButton}
+              onClick={() => setReviewStatus("rejected")}
+            >
               Reject
             </button>
           </div>
+          {reviewStatus === "approved" && (
+            <p className={styles.updateSuccessMessage}>Successfully updated!</p>
+          )}
+          {reviewStatus === "rejected" && (
+            <p className={styles.updateRejectedMessage}>Result was rejected</p>
+          )}
         </div>
       )}
     </div>

@@ -1,0 +1,241 @@
+.validationCard {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(26, 138, 146, 0.18);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 16px 36px rgba(20, 90, 114, 0.12);
+  backdrop-filter: blur(2px);
+}
+
+.validationCard h2 {
+  margin: 0 0 18px;
+  font-size: 26px;
+  line-height: 1.2;
+  color: #155c6a;
+}
+
+.validationCard h3 {
+  margin: 0 0 12px;
+  color: #1f4f5d;
+}
+
+.validationCard h4 {
+  margin: 0;
+  color: #2c5866;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3f6874;
+}
+
+.field input {
+  width: 100%;
+  border: 1px solid #d0e5ea;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #12313b;
+  background: #fbfeff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field input:focus {
+  border-color: #34a8b2;
+  box-shadow: 0 0 0 3px rgba(52, 168, 178, 0.18);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.validateButton {
+  min-width: 170px;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 15px;
+  background: linear-gradient(135deg, #34a8b2, #237f8a);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.validateButton:hover {
+  transform: translateY(-1px);
+}
+
+.validateButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.errorMessage {
+  margin: 14px 0 0;
+  background: #fff1f2;
+  border: 1px solid #ffcdd5;
+  color: #a73a4a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.resultCard {
+  margin-top: 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(29, 124, 160, 0.22);
+  background: #f4fbfd;
+  padding: 18px;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 0 14px;
+}
+
+.scoreLabel {
+  margin: 0;
+  color: #305967;
+  font-weight: 600;
+}
+
+.scoreValue {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.scoreHigh {
+  color: #227d58;
+}
+
+.scoreMedium {
+  color: #976e12;
+}
+
+.scoreLow {
+  color: #b23e4d;
+}
+
+.breakdownGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric {
+  background: #ffffff;
+  border: 1px solid rgba(29, 124, 160, 0.2);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.metric span {
+  display: block;
+  color: #4c6b76;
+  font-size: 12px;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 4px;
+  color: #154d5d;
+  font-size: 18px;
+}
+
+.issuesSection {
+  margin-top: 16px;
+}
+
+.noIssues {
+  margin: 8px 0 0;
+  color: #3b6572;
+}
+
+.issuesList {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.issueItem {
+  background: #ffffff;
+  border: 1px solid rgba(29, 124, 160, 0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.issueTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.issueItem strong {
+  color: #1d4f60;
+}
+
+.issueItem p {
+  margin: 6px 0 0;
+  color: #395f6d;
+}
+
+.severityBadge {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.severityHigh {
+  background: #ffe5e8;
+  color: #b23e4d;
+}
+
+.severityMedium {
+  background: #fff3dd;
+  color: #8f660e;
+}
+
+.severityLow {
+  background: #e5f7ec;
+  color: #227d58;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .breakdownGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

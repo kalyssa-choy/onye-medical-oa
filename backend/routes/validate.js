@@ -19,7 +19,7 @@ router.post("/validate/data-quality", async (req, res) => {
     } = req.body;
 
     /*
-    If we're in mock mode (e.g., for an OA without paid API access),
+    If we're in mock mode (without paid API access),
     return a deterministic data quality assessment without calling OpenAI.
     */
     if (process.env.USE_MOCK_OPENAI === "true" || !process.env.OPENAI_API_KEY) {
@@ -31,7 +31,32 @@ router.post("/validate/data-quality", async (req, res) => {
         vital_signs,
       };
 
-      let completeness = 0;
+      const hasAnyInput =
+        (demographics && Object.keys(demographics).length > 0) ||
+        (Array.isArray(medications) && medications.length > 0) ||
+        (Array.isArray(allergies) && allergies.length > 0) ||
+        (Array.isArray(conditions) && conditions.length > 0) ||
+        (vital_signs && Object.keys(vital_signs).length > 0) ||
+        Boolean(last_updated);
+
+      if (!hasAnyInput) {
+        const emptyResult = {
+          overall_score: 0,
+          breakdown: {
+            completeness: 0,
+            accuracy: 0,
+            timeliness: 0,
+            clinical_plausibility: 0,
+          },
+          issues_detected: [],
+        };
+
+        return res.json({
+          ai_response: emptyResult,
+          raw_output: JSON.stringify(emptyResult),
+        });
+      }
+
       let filledSections = 0;
       const totalSections = Object.keys(sections).length;
 
@@ -47,7 +72,7 @@ router.post("/validate/data-quality", async (req, res) => {
         }
       });
 
-      completeness = Math.round((filledSections / totalSections) * 100);
+      const completeness = Math.round((filledSections / totalSections) * 100);
 
       // Very rough timeliness heuristic
       let timeliness = 70;

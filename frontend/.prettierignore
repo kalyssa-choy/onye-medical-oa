@@ -1,0 +1,5 @@
+# Do not run Prettier on these paths. Customize as needed.
+node_modules/
+dist/
+build/
+public/
