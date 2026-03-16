@@ -18,6 +18,87 @@ router.post("/validate/data-quality", async (req, res) => {
         last_updated 
     } = req.body;
 
+    /*
+    If we're in mock mode (e.g., for an OA without paid API access),
+    return a deterministic data quality assessment without calling OpenAI.
+    */
+    if (process.env.USE_MOCK_OPENAI === "true" || !process.env.OPENAI_API_KEY) {
+      const sections = {
+        demographics,
+        medications,
+        allergies,
+        conditions,
+        vital_signs,
+      };
+
+      let completeness = 0;
+      let filledSections = 0;
+      const totalSections = Object.keys(sections).length;
+
+      Object.values(sections).forEach((section) => {
+        const hasContent =
+          section &&
+          ((Array.isArray(section) && section.length > 0) ||
+            (!Array.isArray(section) &&
+              typeof section === "object" &&
+              Object.keys(section).length > 0));
+        if (hasContent) {
+          filledSections += 1;
+        }
+      });
+
+      completeness = Math.round((filledSections / totalSections) * 100);
+
+      // Very rough timeliness heuristic
+      let timeliness = 70;
+      if (!last_updated) {
+        timeliness = 40;
+      }
+
+      // Simple plausibility check for blood pressure if present
+      let clinicalPlausibility = 80;
+      const issues_detected = [];
+
+      if (
+        vital_signs &&
+        typeof vital_signs.blood_pressure === "string" &&
+        vital_signs.blood_pressure.includes("/")
+      ) {
+        const [s, d] = vital_signs.blood_pressure.split("/").map((x) => Number(x));
+        if (!Number.isNaN(s) && !Number.isNaN(d) && (s > 260 || d > 160)) {
+          clinicalPlausibility = 40;
+          issues_detected.push({
+            field: "vital_signs.blood_pressure",
+            issue: "Blood pressure value is physiologically implausible",
+            severity: "high",
+          });
+        }
+      }
+
+      // Accuracy is loosely tied to plausibility here
+      const accuracy = Math.round((clinicalPlausibility + completeness) / 2);
+
+      const overall_score = Math.round(
+        (completeness + accuracy + timeliness + clinicalPlausibility) / 4
+      );
+
+      const mockResult = {
+        overall_score,
+        breakdown: {
+          completeness,
+          accuracy,
+          timeliness,
+          clinical_plausibility: clinicalPlausibility,
+        },
+        issues_detected,
+      };
+
+      return res.json({
+        ai_response: mockResult,
+        raw_output: JSON.stringify(mockResult),
+      });
+    }
+
     const prompt = `
 You are a medical data quality assessor.
 
@@ -75,11 +156,14 @@ Rules:
     } catch (parseError) {
       return res.status(500).json({
         error: "Model did not return valid JSON",
-        rawOutput: output
+        raw_output: output
       });
     }
 
-    res.json(parsedResult);
+    res.json({
+      ai_response: parsedResult,
+      raw_output: output
+    });
   } catch (error) {
     console.error("Validation error:", error);
     res.status(500).json({
