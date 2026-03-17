@@ -10,6 +10,10 @@ This app provides:
 - `POST /api/validate/data-quality` for data quality scoring
 - A React dashboard with separate Reconciliation and Validation tabs
 
+## Video Demo
+
+[![Clinical Data Reconciliation Engine Submission](https://img.youtube.com)](https://youtu.be/9zoTrE7yEFE)
+
 ## Architecture
 
 The project is structured as a simple full-stack application:
@@ -155,10 +159,6 @@ curl -X POST http://localhost:3001/api/validate/data-quality \
   - Frontend key via `VITE_APP_API_KEY`
 - **README with setup instructions and design decisions**
   - Included in this file
-
-## Video Demo
-
-[![Clinical Data Reconciliation Engine Submission](https://img.youtube.com)](https://youtu.be/9zoTrE7yEFE)
 
 ## Key Design Decisions and Trade-offs
 
