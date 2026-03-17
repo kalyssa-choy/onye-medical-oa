@@ -15,15 +15,18 @@ This app provides:
 The project is structured as a simple full-stack application:
 
 frontend/
+
 - React dashboard for reconciliation and validation workflows
 
 backend/
+
 - Express API server
 - Business logic utilities for reconciliation and validation
 - Middleware for authentication
 - In-memory caching layer
 
 examples/
+
 - Sample request payloads for testing API endpoints
 
 The frontend communicates with the backend via REST endpoints under `/api/*`.
@@ -152,6 +155,10 @@ curl -X POST http://localhost:3001/api/validate/data-quality \
   - Frontend key via `VITE_APP_API_KEY`
 - **README with setup instructions and design decisions**
   - Included in this file
+
+## Video Demo
+
+[![Clinical Data Reconciliation Engine Submission](https://img.youtube.com)](https://youtu.be/9zoTrE7yEFE)
 
 ## Key Design Decisions and Trade-offs
 
