@@ -111,7 +111,7 @@ router.post("/reconcile/medication", async (req, res) => {
 
       const mockResult = {
         reconciled_medication: best.medication,
-        confidence_score: 0.85,
+        confidence_score: 0.85, //default score for mock mode
         reasoning:
           "Selected the medication from the most reliable and most recent source in the provided records.",
         recommended_actions: [

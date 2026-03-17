@@ -172,4 +172,4 @@ curl -X POST http://localhost:3001/api/validate/data-quality \
 
 ## Estimated Time Spent
 
-Approximately **16 hours**.
+Approximately **9 hours**.
