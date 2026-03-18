@@ -1,3 +1,5 @@
+// helper functions for the validate route
+
 export const hasAnyValidationInput = ({
   demographics,
   medications,
@@ -24,6 +26,7 @@ export const buildEmptyValidationResult = () => ({
   issues_detected: [],
 });
 
+// mock validation for mock mode (costless option)
 export const buildMockValidationResult = ({
   demographics,
   medications,

@@ -5,6 +5,7 @@ import styles from "./App.module.css";
 
 type ActiveCard = "reconcile" | "validate";
 
+//main component for the app (for organizational purposes)
 export const App = () => {
   const [activeCard, setActiveCard] = useState<ActiveCard>("reconcile");
 
@@ -21,13 +22,14 @@ export const App = () => {
           </p>
         </header>
 
+        {/* The tab buttons */}
         <nav className={styles.tabs}>
           <button
             type="button"
             onClick={() => setActiveCard("reconcile")}
             className={`${styles.tab} ${activeCard === "reconcile" ? styles.tabActive : ""}`}
           >
-            Data Reconciliation
+            Medical Record Reconciliation
           </button>
           <button
             type="button"
@@ -39,6 +41,7 @@ export const App = () => {
         </nav>
 
         <main className={styles.content}>
+          {/* The tab buttons display */}
           {activeCard === "reconcile" && <DataReconcileCard />}
           {activeCard === "validate" && <DataValidationCard />}
         </main>

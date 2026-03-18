@@ -9,14 +9,17 @@ import {
   hasAnyValidationInput,
 } from "../utils/validateUtils.js";
 
+//test valid date
 test("isValidDate accepts YYYY-MM-DD dates", () => {
   assert.equal(isValidDate("2026-03-16"), true);
 });
 
+//test invalid format date
 test("isValidDate rejects invalid formats", () => {
   assert.equal(isValidDate("03/16/2026"), false);
 });
 
+//chooses best source based on reliability and recency
 test("selectBestSource prefers higher reliability then recency", () => {
   const selected = selectBestSource([
     {
@@ -42,6 +45,7 @@ test("selectBestSource prefers higher reliability then recency", () => {
   assert.equal(selected.system, "B");
 });
 
+// checks if there is input
 test("hasAnyValidationInput detects empty payload", () => {
   const hasInput = hasAnyValidationInput({
     demographics: {},
@@ -55,6 +59,7 @@ test("hasAnyValidationInput detects empty payload", () => {
   assert.equal(hasInput, false);
 });
 
+//returns 0 score baseline
 test("buildEmptyValidationResult returns 0 score baseline", () => {
   const result = buildEmptyValidationResult();
   assert.equal(result.overall_score, 0);
@@ -62,6 +67,7 @@ test("buildEmptyValidationResult returns 0 score baseline", () => {
   assert.equal(result.issues_detected.length, 0);
 });
 
+//flags implausible blood pressure (340/180)
 test("buildMockValidationResult flags implausible blood pressure", () => {
   const result = buildMockValidationResult({
     demographics: { name: "John Doe" },
@@ -76,6 +82,7 @@ test("buildMockValidationResult flags implausible blood pressure", () => {
   assert.equal(result.issues_detected[0].field, "vital_signs.blood_pressure");
 });
 
+//test cache store can set/get values by key
 test("cache store can set/get values by key", () => {
   const cache = createCacheStore(1000);
   const key = buildCacheKey("validate", true, { foo: "bar" });

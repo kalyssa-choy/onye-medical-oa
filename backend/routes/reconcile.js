@@ -3,17 +3,17 @@ import OpenAI from "openai";
 import { buildCacheKey, createCacheStore } from "../utils/cacheStore.js";
 import { isValidDate, selectBestSource } from "../utils/reconcileUtils.js";
 
-const router = express.Router();
+const router = express.Router(); 
 
-const client = new OpenAI({
+const client = new OpenAI({ //create openai client
   apiKey: process.env.OPENAI_API_KEY,
 });
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 5 * 60 * 1000; //how long to keep cache (milliseconds)
 // Lightweight in-memory cache to reduce repeated LLM calls for identical payloads.
 const responseCache = createCacheStore(CACHE_TTL_MS);
 
-router.post("/reconcile/medication", async (req, res) => {
-  try {
+router.post("/reconcile/medication", async (req, res) => { //medication reconciliation route
+  try { 
     const { patient_context, sources } = req.body;
     const useMockMode =
       process.env.USE_MOCK_OPENAI === "true" || !process.env.OPENAI_API_KEY;
@@ -95,16 +95,17 @@ router.post("/reconcile/medication", async (req, res) => {
       }
     }
 
+
     const cacheKey = buildCacheKey("reconcile", useMockMode, req.body);
-    const cached = responseCache.get(cacheKey);
+    const cached = responseCache.get(cacheKey); 
+    //check if the cache has a response for the request
     if (cached) {
       // Return cached response to minimize latency and API usage.
       return res.json(cached);
     }
 
     /*
-    If we're in mock mode (e.g., for an OA without paid API access),
-    return a deterministic reconciled result without calling OpenAI.
+    If we're in mock mode, return a deterministic reconciled result without calling OpenAI
     */
     if (useMockMode) {
       const best = selectBestSource(sources);
@@ -159,15 +160,18 @@ Rules:
 - do not include extra text
 `;
 
-    const response = await client.responses.create({
+    //create the response request from the openai client
+    const response = await client.responses.create({ 
       model: "gpt-4.1-mini",
       input: prompt,
     });
 
+    //ai response
     const output = response.output_text;
 
-    let parsedResult;
+    let parsedResult; 
 
+    //parse response to json
     try {
       parsedResult = JSON.parse(output);
     } catch (err) {

@@ -9,13 +9,15 @@ import {
 
 const router = express.Router();
 
+//create openai client
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 5 * 60 * 1000; //how long to keep cache (milliseconds)
 // Lightweight in-memory cache to reduce repeated LLM calls for identical payloads.
 const responseCache = createCacheStore(CACHE_TTL_MS);
 
+//data quality validation route
 router.post("/validate/data-quality", async (req, res) => {
   try {
     const {
@@ -27,6 +29,7 @@ router.post("/validate/data-quality", async (req, res) => {
       last_updated,
     } = req.body;
 
+    // if mock mode in enabled or api key doesn't exist
     const useMockMode =
       process.env.USE_MOCK_OPENAI === "true" || !process.env.OPENAI_API_KEY;
     const cacheKey = buildCacheKey("validate", useMockMode, req.body);
@@ -37,8 +40,7 @@ router.post("/validate/data-quality", async (req, res) => {
     }
 
     /*
-    If we're in mock mode (without paid API access),
-    return a deterministic data quality assessment without calling OpenAI.
+    If we're in mock mode return a deterministic data quality assessment without calling OpenAI
     */
     if (useMockMode) {
       const hasAnyInput = hasAnyValidationInput({
@@ -50,6 +52,7 @@ router.post("/validate/data-quality", async (req, res) => {
         last_updated,
       });
 
+      // checks if there is input
       if (!hasAnyInput) {
         const emptyResult = buildEmptyValidationResult();
 
@@ -62,6 +65,7 @@ router.post("/validate/data-quality", async (req, res) => {
         return res.json(emptyResponse);
       }
 
+      // build mock result for mock mode
       const mockResult = buildMockValidationResult({
         demographics,
         medications,
@@ -80,6 +84,7 @@ router.post("/validate/data-quality", async (req, res) => {
       return res.json(mockResponse);
     }
 
+    //prompt that will be send to the open ai client
     const prompt = `
 You are a medical data quality assessor.
 
@@ -124,14 +129,16 @@ Rules:
 - do not include extra text
 `;
 
+    // create the response request from the openai client
     const response = await client.responses.create({
       model: "gpt-4.1-mini",
       input: prompt,
     });
 
-    const output = response.output_text;
+    const output = response.output_text; //ai response
 
     let parsedResult;
+    //parse response to json
     try {
       parsedResult = JSON.parse(output);
     } catch (parseError) {
@@ -140,7 +147,8 @@ Rules:
         raw_output: output,
       });
     }
-
+     
+    // final response object to return to frontend/update cache
     const modelResponse = {
       ai_response: parsedResult,
       raw_output: output,

@@ -1,12 +1,17 @@
 import React, { useState } from "react";
 import styles from "./DataReconcileCard.module.css";
 
+//type for the reliability of the source
 type Reliability = "low" | "medium" | "high";
+//esuring lab entries are in the format of "key:value"
 const LAB_ENTRY_PATTERN = /^([^:]+):\s*(-?\d+(\.\d+)?)$/;
+//api key for the app
 const APP_API_KEY = import.meta.env.VITE_APP_API_KEY || "onye-dev-key";
+//function to get the error message from the error
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Something went wrong.";
 
+//type for the source record
 interface SourceRecord {
   system: string;
   medication: string;
@@ -14,6 +19,7 @@ interface SourceRecord {
   source_reliability: Reliability;
 }
 
+//type for the reconcile response
 interface ReconcileResponse {
   reconciled_medication: string;
   confidence_score: number;
@@ -22,8 +28,10 @@ interface ReconcileResponse {
   clinical_safety_check: "PASSED" | "DENIED";
 }
 
+//type for the review status
 type ReviewStatus = "none" | "approved" | "rejected";
 
+//main component for the data reconcile card
 export const DataReconcileCard: React.FC = () => {
   const [age, setAge] = useState("");
   const [conditions, setConditions] = useState("");
@@ -32,7 +40,6 @@ export const DataReconcileCard: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<ReconcileResponse | null>(null);
   const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("none");
-
   const [sources, setSources] = useState<SourceRecord[]>([
     {
       system: "",
@@ -43,6 +50,7 @@ export const DataReconcileCard: React.FC = () => {
   ]);
 
   const updateSource = (index: number, field: keyof SourceRecord, value: string) => {
+    //prev is the previous state of the sources array
     setSources((prev) =>
       prev.map((source, i) => (i === index ? { ...source, [field]: value } : source)),
     );
@@ -60,10 +68,12 @@ export const DataReconcileCard: React.FC = () => {
     ]);
   };
 
+  //removing a source from the sources array
   const removeSource = (index: number) => {
     setSources((prev) => prev.filter((_, i) => i !== index));
   };
 
+  //parsing the labs input into a record of key:value pairs
   const parseLabs = (input: string): Record<string, number> => {
     if (!input.trim()) return {};
 
@@ -86,20 +96,26 @@ export const DataReconcileCard: React.FC = () => {
       }, {});
   };
 
+  //checking the input data for errors
   const checkInputData = (): string => {
     const numericAge = Number(age);
 
+    //valid age
     if (!Number.isFinite(numericAge) || numericAge <= 0) {
       return "Age is required and must be a positive number.";
     }
 
+    //at least one condition is required
     if (!conditions.trim()) {
       return "At least one condition is required.";
     }
 
+    //at least one lab is required
     if (!labs.trim()) {
       return "Recent labs are required.";
-    } else {
+    }
+    //adds only valid lab entries to the record, ensures labs are in the format of "key:value"
+    else {
       const pieces = labs
         .split(",")
         .map((piece) => piece.trim())
@@ -113,10 +129,12 @@ export const DataReconcileCard: React.FC = () => {
       }
     }
 
+    //at least one source is required
     if (sources.length === 0) {
       return "At least one conflicting source is required.";
     }
 
+    //checking each source for errors
     for (const [index, source] of sources.entries()) {
       if (!source.system.trim()) {
         return `Source ${index + 1}: system is required.`;
@@ -135,32 +153,37 @@ export const DataReconcileCard: React.FC = () => {
       }
     }
 
-    return "";
+    return ""; //no errors found
   };
 
+  //mock confidence labels and classes
+  //getting the confidence label based on the confidence score
   const getConfidenceLabel = (score: number) => {
     if (score >= 0.8) return "High Confidence";
     if (score >= 0.5) return "Medium Confidence";
     return "Low Confidence";
   };
 
+  //getting the confidence styling class based on the confidence score
   const getConfidenceClass = (score: number) => {
     if (score >= 0.8) return styles.confidenceHigh;
     if (score >= 0.5) return styles.confidenceMedium;
     return styles.confidenceLow;
   };
 
+  //handling the reconcile click
   const handleReconcileClick = async () => {
-    setErrorMessage("");
+    setErrorMessage(""); //reset error message
     setResult(null);
     setReviewStatus("none");
 
-    const validationError = checkInputData();
+    const validationError = checkInputData(); //check for input errors
     if (validationError) {
       setErrorMessage(validationError);
       return;
     }
 
+    //creating the payload for the reconcile request to backend
     const payload = {
       patient_context: {
         age: Number(age),
@@ -179,23 +202,27 @@ export const DataReconcileCard: React.FC = () => {
     };
 
     try {
+      //try to make the reconcile request to backend
       setLoading(true);
 
       const response = await fetch("/api/reconcile/medication", {
-        method: "POST",
+        //make the reconcile request to backend
+        method: "POST", //send data to the backend
         headers: {
-          "Content-Type": "application/json",
-          "x-api-key": APP_API_KEY,
+          "Content-Type": "application/json", //set the content type to json
+          "x-api-key": APP_API_KEY, //set the api key
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload), //actually convert to json string
       });
 
       const data = await response.json();
 
+      //throw an error when response is not ok
       if (!response.ok) {
         throw new Error(data?.error || "Medication reconciliation failed.");
       }
 
+      //update the result state with the response from the backend
       setResult(data);
     } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error));
@@ -204,6 +231,7 @@ export const DataReconcileCard: React.FC = () => {
     }
   };
 
+  //rendering the components
   return (
     <div className={styles.reconcileCard}>
       <h2>Medication Reconciliation Tool</h2>
@@ -240,6 +268,7 @@ export const DataReconcileCard: React.FC = () => {
 
       <h3>Medication Records to Reconcile</h3>
 
+      {/* rendering the sources in the source array*/}
       {sources.map((source, index) => (
         <div key={index} className={styles.sourceCard}>
           <div className={styles.sourceInputsFirstRow}>
@@ -312,12 +341,15 @@ export const DataReconcileCard: React.FC = () => {
           onClick={handleReconcileClick}
           disabled={loading}
         >
+          {/* loading message */}
           {loading ? "Reconciling..." : "Reconcile Medication"}
         </button>
       </div>
 
+      {/* rendering the error message if there is one */}
       {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
 
+      {/* rendering the result if there is one */}
       {result && (
         <div
           className={`${styles.reconcileResultCard} ${reviewStatus === "approved" ? styles.reconcileResultApproved : ""} ${reviewStatus === "rejected" ? styles.reconcileResultRejected : ""}`}
@@ -325,6 +357,7 @@ export const DataReconcileCard: React.FC = () => {
           <h3>Reconciled Result</h3>
 
           <div className={styles.resultRow}>
+            {/* the reconciled medication */}
             <strong>Reconciled Medication:</strong>
             <p>{result.reconciled_medication}</p>
           </div>
@@ -355,6 +388,7 @@ export const DataReconcileCard: React.FC = () => {
             <p>{result.clinical_safety_check}</p>
           </div>
 
+          {/* approve and reject buttons */}
           <div className={styles.resultActions}>
             <button
               type="button"
