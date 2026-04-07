@@ -1,6 +1,4 @@
-# OnyeOA - Clinical Data Reconciliation Engine
-
-Take-home implementation for the **Full Stack Developer - EHR Integration Intern** assessment.
+# Clinical Data Reconciliation Engine
 
 ## Overview
 
